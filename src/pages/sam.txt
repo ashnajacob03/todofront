@@ -1,0 +1,146 @@
+
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+
+function List() {
+    const [tasks, setTasks] = useState([]);
+    const [editingTask, setEditingTask] = useState(null);
+    const [editedName, setEditedName] = useState("");
+
+    // Fetch tasks when component mounts
+    useEffect(() => {
+        fetchTasks();
+    }, [tasks]);
+
+    // Function to fetch tasks
+    const fetchTasks = async () => {
+        try {
+            const response = await axios.get("https://todo-backend-tu1p.onrender.com/tasks");
+            setTasks(response.data);
+        } catch (error) {
+            console.error("Error fetching tasks:", error);
+            alert("Failed to load tasks");
+        }
+    };
+
+    // Function to delete task
+    const handleDelete = async (id) => {
+        try {
+            await axios.delete(https://todo-backend-tu1p.onrender.com/tasks/${id});
+            alert("Task deleted successfully");
+            fetchTasks(); // Refresh the list
+        } catch (error) {
+            alert("Failed to delete task");
+        }
+    };
+
+    // Function to start editing
+    const handleEdit = (task) => {
+        setEditingTask(task._id);
+        setEditedName(task.name);
+    };
+
+    // Function to save edited task name
+    const handleSaveEdit = async (id) => {
+        if (!editedName.trim()) {
+            alert("Task name cannot be empty");
+            return;
+        }
+        try {
+            await axios.put(https://todo-backend-tu1p.onrender.com/tasks/${id}, {
+                name: editedName.trim()
+            });
+            setEditingTask(null);
+            fetchTasks();
+            alert("Task updated successfully");
+        } catch (error) {
+            alert("Failed to update task");
+        }
+    };
+
+    return (
+        <section className="section has-background-grey-lighter">
+            <div className="container">
+                <div className="box has-background-dark has-shadow">
+                    <div className="level">
+                        <div className="level-left">
+                            <div className="level-item">
+                                <h2 className="title is-4 has-text-white">Your Tasks</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="table-container">
+                        <table className="table is-fullwidth is-striped is-hoverable has-background-dark">
+                            <thead>
+                                <tr>
+                                    <th className="has-text-white">Task Date</th>
+                                    <th className="has-text-white">Task Name</th>
+                                    <th className="has-text-centered has-text-white">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {tasks.map((task) => (
+                                    <tr key={task._id}>
+                                        <td className="has-text-white">
+                                            {new Date(task.date).toLocaleString()}
+                                        </td>
+                                        <td className="has-text-white">
+                                            {editingTask === task._id ? (
+                                                <input
+                                                    type="text"
+                                                    className="input is-small has-background-dark has-text-white"
+                                                    value={editedName}
+                                                    onChange={(e) => setEditedName(e.target.value)}
+                                                    onKeyPress={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            handleSaveEdit(task._id);
+                                                        }
+                                                    }}
+                                                />
+                                            ) : (
+                                                task.name
+                                            )}
+                                        </td>
+                                        <td className="has-text-centered">
+                                            <div className="buttons are-small is-centered">
+                                                {editingTask === task._id ? (
+                                                    <button
+                                                        className="button is-success is-outlined"
+                                                        onClick={() => handleSaveEdit(task._id)}
+                                                    >
+                                                        <span className="icon">
+                                                            <i className="fa-solid fa-check"></i>
+                                                        </span>
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        className="button is-white is-outlined"
+                                                        onClick={() => handleEdit(task)}
+                                                    >
+                                                        <span className="icon">
+                                                            <i className="fa-solid fa-pen-to-square"></i>
+                                                        </span>
+                                                    </button>
+                                                )}
+                                                <button
+                                                    className="button is-white is-outlined"
+                                                    onClick={() => handleDelete(task._id)}
+                                                >
+                                                    <span className="icon">
+                                                        <i className="fa-solid fa-trash"></i>
+                                                    </span>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+    );
+}
+
+export default List;

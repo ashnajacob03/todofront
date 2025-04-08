@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import "./Home.css";
@@ -6,7 +6,26 @@ import "./Home.css";
 function Home() {
   const [property, setProperty] = useState({ title: "" });
   const [tasks, setTasks] = useState([]);
-  const [editingIndex, setEditingIndex] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+
+  useEffect(() => {
+    fetchTasks();
+  }, []);
+
+  const fetchTasks = async () => {
+    try {
+      const response = await axios.get("https://todoback-ej5o.onrender.com/api/todos");
+      setTasks(response.data);
+    } catch (error) {
+      console.error("Error fetching tasks:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text: "Failed to fetch tasks",
+        confirmButtonColor: "#d33",
+      });
+    }
+  };
 
   const handleChange = (e) => {
     setProperty({ ...property, [e.target.name]: e.target.value });
@@ -25,44 +44,68 @@ function Home() {
     }
 
     try {
-      await axios.post(
-        "https://todoback-ej5o.onrender.com/itemInserting",
-        property
-      );
-      Swal.fire({
-        icon: "success",
-        title: "Success!",
-        text: "Task added successfully",
-        confirmButtonColor: "#3085d6",
-      });
-
-      if (editingIndex !== null) {
-        const updatedTasks = [...tasks];
-        updatedTasks[editingIndex] = property.title;
-        setTasks(updatedTasks);
-        setEditingIndex(null);
+      if (editingId !== null) {
+        await axios.put(
+          `https://todoback-ej5o.onrender.com/api/todos/${editingId}`,
+          property
+        );
+        Swal.fire({
+          icon: "success",
+          title: "Success!",
+          text: "Task updated successfully",
+          confirmButtonColor: "#3085d6",
+        });
       } else {
-        setTasks([...tasks, property.title]);
+        await axios.post(
+          "https://todoback-ej5o.onrender.com/api/todos",
+          property
+        );
+        Swal.fire({
+          icon: "success",
+          title: "Success!",
+          text: "Task added successfully",
+          confirmButtonColor: "#3085d6",
+        });
       }
       
+      fetchTasks();
       setProperty({ title: "" });
+      setEditingId(null);
     } catch (error) {
+      console.error("Error in handleSubmit:", error);
       Swal.fire({
         icon: "error",
         title: "Oops...",
-        text: "Task not added",
+        text: error.response?.data?.error || "Operation failed",
         confirmButtonColor: "#d33",
       });
     }
   };
 
-  const deleteTask = (index) => {
-    setTasks(tasks.filter((_, i) => i !== index));
+  const deleteTask = async (id) => {
+    try {
+      await axios.delete(`https://todoback-ej5o.onrender.com/api/todos/${id}`);
+      Swal.fire({
+        icon: "success",
+        title: "Success!",
+        text: "Task deleted successfully",
+        confirmButtonColor: "#3085d6",
+      });
+      fetchTasks();
+    } catch (error) {
+      console.error("Error deleting task:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text: error.response?.data?.error || "Failed to delete task",
+        confirmButtonColor: "#d33",
+      });
+    }
   };
 
-  const editTask = (index) => {
-    setProperty({ title: tasks[index] });
-    setEditingIndex(index);
+  const editTask = (task) => {
+    setProperty({ title: task.title });
+    setEditingId(task._id);
   };
 
   return (
@@ -80,16 +123,16 @@ function Home() {
             onChange={handleChange}
             placeholder="Enter a new task"
           />
-          <button type="submit">{editingIndex !== null ? "Update Task" : "Add Task"}</button>
+          <button type="submit">{editingId !== null ? "Update Task" : "Add Task"}</button>
         </form>
         <div id="taskList">
-          {tasks.map((task, index) => (
-            <div key={index} className="task">
-              <span>{task}</span>
-              <button className="delete" onClick={() => deleteTask(index)}>
+          {tasks.map((task) => (
+            <div key={task._id} className="task">
+              <span>{task.title}</span>
+              <button className="delete" onClick={() => deleteTask(task._id)}>
                 Delete
               </button>
-              <button className="edit" onClick={() => editTask(index)}>
+              <button className="edit" onClick={() => editTask(task)}>
                 Edit
               </button>
             </div>
